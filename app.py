@@ -83,6 +83,15 @@ def round_portions(portions_dict):
 
 
 def main():
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        st.write(' ')
+    with col2:
+        st.image("imgs/ResetM30_17.png", width=200)
+    with col3:
+        st.write(' ')
+
     st.title("Calculadora de Porções de Grupos Alimentares")
     st.subheader("RESET METHOD SELECT")
 
