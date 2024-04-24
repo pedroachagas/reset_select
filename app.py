@@ -3,74 +3,77 @@ import numpy as np
 
 SALADA = 130
 CALORIES_PER_G_PROTEIN = 4
-CALORIES_PER_G_CARBOHYDRATE = 4
-CALORIES_PER_G_FAT = 9
-RATIO_CARBOHYDRATE = 0.5
-RATIO_FAT = 0.3
 PROTEIN_PER_KG = 2.2
-
+KCALS_G4 = 105
+KCALS_G5 = 32
+KCALS_G11 = 115
+KCALS_G12 = 75
+KCALS_G13 = 97
+PROT_65 = 6
+PROT_65_75 = 7
+PROT_75_85 = 9
+PROT_85 = 10
 
 def calculate_protein(weight):
     kcal_protein = weight * PROTEIN_PER_KG * CALORIES_PER_G_PROTEIN
-    groups_protein = kcal_protein / 105
+    groups_protein = kcal_protein / KCALS_G4
 
     if weight < 65:
-        if groups_protein < 6:
-            groups_protein = 6
-    if 65 <= weight < 75:
-        if groups_protein < 7:
-            groups_protein = 7
-    if 75 <= weight < 85:
-        if groups_protein < 9:
-            groups_protein = 9
-    if weight >= 85:
-        if groups_protein < 10:
-            groups_protein = 10
+        groups_protein = max(groups_protein, PROT_65)
+    elif 65 <= weight < 75:
+        groups_protein = max(groups_protein, PROT_65_75)
+    elif 75 <= weight < 85:
+        groups_protein = max(groups_protein, PROT_75_85)
+    elif weight >= 85:
+        groups_protein = max(groups_protein, PROT_85)
 
     return groups_protein
 
 def calculate_kcals_groups(calories, weight, carb_fat_percent, ratio_carb, ratio_fat):
     groups_protein = calculate_protein(weight)
-    kcals_protein = groups_protein * 105
-    kcals_carb = (calories - kcals_protein - SALADA) * carb_fat_percent
-    kcals_fat = (calories - kcals_protein - SALADA) * (1 - carb_fat_percent)
+    kcals_protein = groups_protein * KCALS_G4
+    remaining_calories = calories - kcals_protein - SALADA
 
-    return kcals_protein, kcals_carb, kcals_fat
+    kcals_gord = remaining_calories * (1 - carb_fat_percent)
+    kcals_carb = remaining_calories * carb_fat_percent
 
-def distribute_groups(kcals_protein, kcals_carb, kcals_fat, ratio_carb, ratio_fat):
+    return {
+        4: kcals_protein,
+        5: kcals_carb * (1 - ratio_carb),
+        12: kcals_carb * ratio_carb,
+        11: kcals_gord * (1 - ratio_fat),
+        13: kcals_gord * ratio_fat
+    }
+
+def calculate_portions(kcals_dict):
     portion_sizes = {
-        4: ('protein', (105, 15)),
-        5: ('carb', (32, 7)),
-        11: ('fat', (115, 9.8)),
-        12: ('carb', (75, 15)),
-        13: ('fat', (97, 10.7))
+        4: KCALS_G4,
+        5: KCALS_G5,
+        11: KCALS_G11,
+        12: KCALS_G12,
+        13: KCALS_G13
     }
 
-    groups = {
-        4: kcals_protein / portion_sizes[4][1][0],
-        5: kcals_carb * (1 - ratio_carb) / portion_sizes[5][1][0],
-        12: kcals_carb * ratio_carb / portion_sizes[12][1][0],
-        11: kcals_fat * (1 - ratio_fat) / portion_sizes[11][1][0],
-        13: kcals_fat * ratio_fat / portion_sizes[13][1][0]
-    }
-
-    return groups
+    return round_portions({
+        group_id: kcals / portion_sizes[group_id]
+        for group_id, kcals in kcals_dict.items()
+    })
 
 def check_calories(portions_dict):
     portion_sizes = {
-        4: ('protein', (105, 15)),
-        5: ('carb', (32, 7)),
-        11: ('fat', (115, 9.8)),
-        12: ('carb', (75, 15)),
-        13: ('fat', (97, 10.7))
+        4: KCALS_G4,
+        5: KCALS_G5,
+        11: KCALS_G11,
+        12: KCALS_G12,
+        13: KCALS_G13
     }
 
     total_calories = 0
     for group_id, num_portions in portions_dict.items():
-        _, (calories_per_portion, _) = portion_sizes[group_id]
+        calories_per_portion = portion_sizes[group_id]
         total_calories += num_portions * calories_per_portion
 
-    return (total_calories)
+    return total_calories + SALADA
 
 def round_portions(portions_dict):
     for key in portions_dict:
@@ -78,33 +81,41 @@ def round_portions(portions_dict):
 
     return dict(sorted(portions_dict.items()))
 
+
 def main():
-    st.title("Daily Macro-Nutrient Calculator")
+    st.title("Calculadora de Porções de Grupos Alimentares")
+    st.subheader("RESET METHOD SELECT")
 
-    calories = st.number_input("Total Daily Calories", value=2000)
-    weight = st.number_input("Weight (kg)", value=70)
+    with st.form(key='inputs_form'):
+        calories = st.number_input("Gasto Energético Total (kcals)", value=1500)
+        weight = st.number_input("Peso (kg)", value=60)
+        carb_fat_percent = st.slider("Gord vs Carb", 0.0, 1.0, 0.5)
+        ratio_carb = st.slider("Grupo 5 vs 12", 0.0, 1.0, 0.5)
+        ratio_fat = st.slider("Grupo 11 vs 13", 0.0, 1.0, 0.5)
+        submit_button = st.form_submit_button(label='Calculate')
 
-    carb_fat_percent = st.slider("Gord vs Carb", 0.0, 1.0, 0.5)
-    ratio_carb = st.slider("Grupo 5 vs 12", 0.0, 1.0, 0.5)
-    ratio_fat = st.slider("Grupo 11 vs 13", 0.0, 1.0, 0.5)
+    if submit_button:
+        kcals_dict = calculate_kcals_groups(calories, weight, carb_fat_percent, ratio_carb, ratio_fat)
+        portions_dict = calculate_portions(kcals_dict)
+        st.session_state['portions_dict'] = portions_dict
 
-    if st.button("Calculate"):
+    if 'portions_dict' in st.session_state:
+        st.write("## Distribuição sugerida de porções")
+        col_groups = st.columns(5)
+        for idx, (group_id, num_portions) in enumerate(st.session_state['portions_dict'].items()):
+            col_groups[idx].metric(label=f"Grupo {group_id}", value=num_portions)
 
-        kcals_protein, kcals_carb, kcals_fat = calculate_kcals_groups(calories, weight, carb_fat_percent, ratio_carb, ratio_fat)
-        portions_dict = distribute_groups(kcals_protein, kcals_carb, kcals_fat, ratio_carb, ratio_fat)
+        st.write("## Validação de porções")
+        with st.form(key='validation_form'):
+            custom_portions_dict = {}
+            col_inputs = st.columns(5)
+            for i, group_id in enumerate([4, 5, 11, 12, 13]):
+                custom_portions_dict[group_id] = col_inputs[i].number_input(f"Grupo {group_id}", value=st.session_state.portions_dict[group_id])
+            validate_button = st.form_submit_button(label='Validate Portions')
 
-        portions_dict = round_portions(portions_dict)
-
-        total_calories = check_calories(portions_dict)
-
-        st.write("## Recommended Portions")
-        st.metric("Total Calories", total_calories + SALADA, delta=None)
-
-        columns = st.columns(5)
-        for idx, (group_id, num_portions) in enumerate(portions_dict.items()):
-            columns[idx].metric(label=f"Group {group_id}", value=num_portions)
-
-
+            if validate_button:
+                total_calories = check_calories(custom_portions_dict)
+                st.metric("Total Calories", total_calories)
 
 if __name__ == "__main__":
     main()
