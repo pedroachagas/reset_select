@@ -4,34 +4,40 @@ import numpy as np
 SALADA = 130
 CALORIES_PER_G_PROTEIN = 4
 PROTEIN_PER_KG = 2.2
-KCALS_G4 = 105
-KCALS_G5 = 32
-KCALS_G11 = 115
-KCALS_G12 = 75
-KCALS_G13 = 97
-PROT_65 = 6
-PROT_65_75 = 7
-PROT_75_85 = 9
-PROT_85 = 10
+
+MIN_PROTEIN = {
+    65: 6,
+    75: 7,
+    85: 9,
+    100: 10
+}
+
+GROUP_CALORIES = {
+    4: 105,
+    5: 32,
+    11: 115,
+    12: 75,
+    13: 97
+}
 
 def calculate_protein(weight):
     kcal_protein = weight * PROTEIN_PER_KG * CALORIES_PER_G_PROTEIN
-    groups_protein = kcal_protein / KCALS_G4
+    groups_protein = kcal_protein / GROUP_CALORIES[4]
 
     if weight < 65:
-        groups_protein = max(groups_protein, PROT_65)
+        groups_protein = max(groups_protein, MIN_PROTEIN[65])
     elif 65 <= weight < 75:
-        groups_protein = max(groups_protein, PROT_65_75)
+        groups_protein = max(groups_protein, MIN_PROTEIN[75])
     elif 75 <= weight < 85:
-        groups_protein = max(groups_protein, PROT_75_85)
+        groups_protein = max(groups_protein, MIN_PROTEIN[85])
     elif weight >= 85:
-        groups_protein = max(groups_protein, PROT_85)
+        groups_protein = max(groups_protein, MIN_PROTEIN[100])
 
     return groups_protein
 
 def calculate_kcals_groups(calories, weight, carb_fat_percent, ratio_carb, ratio_fat):
     groups_protein = calculate_protein(weight)
-    kcals_protein = groups_protein * KCALS_G4
+    kcals_protein = groups_protein * GROUP_CALORIES[4]
     remaining_calories = calories - kcals_protein - SALADA
 
     kcals_gord = remaining_calories * (1 - carb_fat_percent)
@@ -46,31 +52,17 @@ def calculate_kcals_groups(calories, weight, carb_fat_percent, ratio_carb, ratio
     }
 
 def calculate_portions(kcals_dict):
-    portion_sizes = {
-        4: KCALS_G4,
-        5: KCALS_G5,
-        11: KCALS_G11,
-        12: KCALS_G12,
-        13: KCALS_G13
-    }
 
     return round_portions({
-        group_id: kcals / portion_sizes[group_id]
+        group_id: kcals / GROUP_CALORIES[group_id]
         for group_id, kcals in kcals_dict.items()
     })
 
 def check_calories(portions_dict):
-    portion_sizes = {
-        4: KCALS_G4,
-        5: KCALS_G5,
-        11: KCALS_G11,
-        12: KCALS_G12,
-        13: KCALS_G13
-    }
 
     total_calories = 0
     for group_id, num_portions in portions_dict.items():
-        calories_per_portion = portion_sizes[group_id]
+        calories_per_portion = GROUP_CALORIES[group_id]
         total_calories += num_portions * calories_per_portion
 
     return total_calories + SALADA
@@ -80,7 +72,6 @@ def round_portions(portions_dict):
         portions_dict[key] = int(np.round(portions_dict[key]))
 
     return dict(sorted(portions_dict.items()))
-
 
 def main():
     col1, col2, col3 = st.columns(3)
@@ -118,7 +109,7 @@ def main():
         with st.form(key='validation_form'):
             custom_portions_dict = {}
             col_inputs = st.columns(5)
-            for i, group_id in enumerate([4, 5, 11, 12, 13]):
+            for i, group_id in enumerate(GROUP_CALORIES.keys()):
                 custom_portions_dict[group_id] = col_inputs[i].number_input(f"Grupo {group_id}", value=st.session_state.portions_dict[group_id])
             validate_button = st.form_submit_button(label='Validate Portions')
 
