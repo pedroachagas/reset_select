@@ -5,11 +5,11 @@ SALADA = 130
 CALORIES_PER_G_PROTEIN = 4
 PROTEIN_PER_KG = 2.2
 
-MIN_PROTEIN = {
+WEIGHT_PROTEIN_REQUIREMENTS = {
     65: 6,
     75: 7,
     85: 9,
-    100: 10
+    float('inf'): 10
 }
 
 GROUP_CALORIES = {
@@ -24,16 +24,9 @@ def calculate_protein(weight):
     kcal_protein = weight * PROTEIN_PER_KG * CALORIES_PER_G_PROTEIN
     groups_protein = kcal_protein / GROUP_CALORIES[4]
 
-    if weight < 65:
-        groups_protein = max(groups_protein, MIN_PROTEIN[65])
-    elif 65 <= weight < 75:
-        groups_protein = max(groups_protein, MIN_PROTEIN[75])
-    elif 75 <= weight < 85:
-        groups_protein = max(groups_protein, MIN_PROTEIN[85])
-    elif weight >= 85:
-        groups_protein = max(groups_protein, MIN_PROTEIN[100])
-
-    return groups_protein
+    for weight_threshold, min_protein in WEIGHT_PROTEIN_REQUIREMENTS.items():
+        if weight < weight_threshold:
+            return max(groups_protein, min_protein)
 
 def calculate_kcals_groups(calories, weight, carb_fat_percent, ratio_carb, ratio_fat):
     groups_protein = calculate_protein(weight)
@@ -92,7 +85,7 @@ def main():
         carb_fat_percent = st.slider("Gord vs Carb", 0.0, 1.0, 0.5)
         ratio_carb = st.slider("Grupo 5 vs 12", 0.0, 1.0, 0.5)
         ratio_fat = st.slider("Grupo 11 vs 13", 0.0, 1.0, 0.5)
-        submit_button = st.form_submit_button(label='Calculate')
+        submit_button = st.form_submit_button(label='Gerar distribuição de porções')
 
     if submit_button:
         kcals_dict = calculate_kcals_groups(calories, weight, carb_fat_percent, ratio_carb, ratio_fat)
@@ -111,7 +104,7 @@ def main():
             col_inputs = st.columns(5)
             for i, group_id in enumerate(GROUP_CALORIES.keys()):
                 custom_portions_dict[group_id] = col_inputs[i].number_input(f"Grupo {group_id}", value=st.session_state.portions_dict[group_id])
-            validate_button = st.form_submit_button(label='Validate Portions')
+            validate_button = st.form_submit_button(label='Calcular calorias totais')
 
             if validate_button:
                 total_calories = check_calories(custom_portions_dict)
