@@ -76,7 +76,7 @@ def main():
     with col3:
         st.write(' ')
 
-    st.title("Calculadora de Porções de Grupos Alimentares")
+    st.title("Calculadora de Porções")
     st.subheader("RESET METHOD SELECT")
 
     with st.form(key='inputs_form'):
@@ -98,7 +98,7 @@ def main():
         for idx, (group_id, num_portions) in enumerate(st.session_state['portions_dict'].items()):
             col_groups[idx].metric(label=f"Grupo {group_id}", value=num_portions)
 
-        st.write("## Validação de porções")
+        st.write("## Validação de distribuição de porções")
         with st.form(key='validation_form'):
             custom_portions_dict = {}
             col_inputs = st.columns(5)
@@ -108,7 +108,7 @@ def main():
 
             if validate_button:
                 total_calories = check_calories(custom_portions_dict)
-                st.metric("Total Calories", total_calories)
+                st.metric("Calorias totais", total_calories)
 
 if __name__ == "__main__":
     main()
