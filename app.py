@@ -1,7 +1,7 @@
 import streamlit as st
 import numpy as np
 
-SALADA = 130
+SALADA = 100
 CALORIES_PER_G_PROTEIN = 4
 PROTEIN_PER_KG = 2.2
 
@@ -58,7 +58,7 @@ def check_calories(portions_dict):
         calories_per_portion = GROUP_CALORIES[group_id]
         total_calories += num_portions * calories_per_portion
 
-    return total_calories + SALADA
+    return int(total_calories + SALADA)
 
 def round_portions(portions_dict):
     for key in portions_dict:
@@ -107,8 +107,16 @@ def main():
             validate_button = st.form_submit_button(label='Calcular calorias totais')
 
             if validate_button:
+                st.write("Caloras por grupo")
+                cols = st.columns(5)
+                for i, group_id in enumerate(GROUP_CALORIES.keys()):
+                    cols[i].metric(label=f"Grupo {group_id}", value=int(custom_portions_dict[group_id] * GROUP_CALORIES[group_id]))
+
                 total_calories = check_calories(custom_portions_dict)
-                st.metric("Calorias totais", total_calories)
+                cols[0].metric("Calorias de grupos", total_calories - SALADA)
+                cols[1].metric("+Salada", SALADA)
+                cols[2].metric("=Total", total_calories)
+
 
 if __name__ == "__main__":
     main()
