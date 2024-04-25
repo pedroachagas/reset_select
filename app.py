@@ -103,7 +103,7 @@ def main():
             custom_portions_dict = {}
             col_inputs = st.columns(5)
             for i, group_id in enumerate(GROUP_CALORIES.keys()):
-                custom_portions_dict[group_id] = col_inputs[i].number_input(f"Grupo {group_id}", value=st.session_state.portions_dict[group_id])
+                custom_portions_dict[group_id] = col_inputs[i].number_input(f"Grupo {group_id}", value=float(st.session_state.portions_dict[group_id]), step=1.,format='%.1f')
             validate_button = st.form_submit_button(label='Calcular calorias totais')
 
             if validate_button:
